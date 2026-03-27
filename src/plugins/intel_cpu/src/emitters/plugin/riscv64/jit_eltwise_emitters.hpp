@@ -10,6 +10,7 @@ namespace ov::intel_cpu::riscv64 {
 
 class jit_exp_emitter;
 class jit_tanh_emitter;
+class jit_sigmoid_emitter; 
 
 class jit_abs_emitter : public jit_emitter {
 public:
@@ -494,10 +495,10 @@ private:
 
 class jit_swish_emitter : public jit_emitter { 
     public: 
-    jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+    jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
                                        ov::element::Type exec_prc = ov::element::f32);
-    jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+    jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
                                        const std::shared_ptr<ov::Node>& node,
                                        ov::element::Type exec_prc = ov::element::f32);
