@@ -1868,83 +1868,83 @@ void jit_hswish_emitter::emit_data() const {
 }
 
 //SWISH 
-jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
-                                       ov::intel_cpu::riscv64::cpu_isa_t host_isa,
-                                       ov::element::Type exec_prc)
-    : jit_emitter(host, host_isa, exec_prc) {
-    sigmoid_emitter = std::make_unique<jit_sigmoid_emitter>(host, host_isa, exec_prc);
-}
-jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
-                                       ov::intel_cpu::riscv64::cpu_isa_t host_isa,
-                                       [[maybe_unused]] const std::shared_ptr<ov::Node>& node,
-                                       ov::element::Type exec_prc)
-    : jit_emitter(host, host_isa, exec_prc) {
-    sigmoid_emitter = std::make_unique<jit_sigmoid_emitter>(host, host_isa, exec_prc);
-}
+// jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+//                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
+//                                        ov::element::Type exec_prc)
+//     : jit_emitter(host, host_isa, exec_prc) {
+//     sigmoid_emitter = std::make_unique<jit_sigmoid_emitter>(host, host_isa, exec_prc);
+// }
+// jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+//                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
+//                                        [[maybe_unused]] const std::shared_ptr<ov::Node>& node,
+//                                        ov::element::Type exec_prc)
+//     : jit_emitter(host, host_isa, exec_prc) {
+//     sigmoid_emitter = std::make_unique<jit_sigmoid_emitter>(host, host_isa, exec_prc);
+// }
  
-size_t jit_swish_emitter::get_inputs_num() const {
-    return 1;
-}
+// size_t jit_swish_emitter::get_inputs_num() const {
+//     return 1;
+// }
 
-size_t jit_swish_emitter::aux_gprs_count() const {
-    return sigmoid_emitter->aux_gprs_count();
-}
+// size_t jit_swish_emitter::aux_gprs_count() const {
+//     return sigmoid_emitter->aux_gprs_count();
+// }
 
-size_t jit_swish_emitter::aux_vecs_count() const {
-    return sigmoid_emitter->aux_vecs_count() + 1;
-}
+// size_t jit_swish_emitter::aux_vecs_count() const {
+//     return sigmoid_emitter->aux_vecs_count() + 1;
+// }
 
-size_t jit_swish_emitter::aux_fp_gprs_count() const {
-    return sigmoid_emitter->aux_fp_gprs_count();
-}
-void jit_swish_emitter::emit_impl(const std::vector<size_t>& in_vec_idxs,
-                                   const std::vector<size_t>& out_vec_idxs) const {
-    if (host_isa_ == ov::intel_cpu::riscv64::cpu_isa_t::gv) {
-        emit_isa<ov::intel_cpu::riscv64::cpu_isa_t::gv>(in_vec_idxs, out_vec_idxs);
-    } else {
-        OV_CPU_JIT_EMITTER_THROW("Can't create jit eltwise kernel");
-    }
-}
+// size_t jit_swish_emitter::aux_fp_gprs_count() const {
+//     return sigmoid_emitter->aux_fp_gprs_count();
+// }
+// void jit_swish_emitter::emit_impl(const std::vector<size_t>& in_vec_idxs,
+//                                    const std::vector<size_t>& out_vec_idxs) const {
+//     if (host_isa_ == ov::intel_cpu::riscv64::cpu_isa_t::gv) {
+//         emit_isa<ov::intel_cpu::riscv64::cpu_isa_t::gv>(in_vec_idxs, out_vec_idxs);
+//     } else {
+//         OV_CPU_JIT_EMITTER_THROW("Can't create jit eltwise kernel");
+//     }
+// }
 
-template <ov::intel_cpu::riscv64::cpu_isa_t isa>
-void jit_swish_emitter::emit_isa(const std::vector<size_t>& in_vec_idxs,
-                                  const std::vector<size_t>& out_vec_idxs) const {
-    OV_CPU_JIT_EMITTER_ASSERT(exec_prc_ == ov::element::f32, "Unsupported precision: ", exec_prc_);
+// template <ov::intel_cpu::riscv64::cpu_isa_t isa>
+// void jit_swish_emitter::emit_isa(const std::vector<size_t>& in_vec_idxs,
+//                                   const std::vector<size_t>& out_vec_idxs) const {
+//     OV_CPU_JIT_EMITTER_ASSERT(exec_prc_ == ov::element::f32, "Unsupported precision: ", exec_prc_);
 
-    auto src = VReg(in_vec_idxs[0]);
-    auto dst = VReg(out_vec_idxs[0]);
+//     auto src = VReg(in_vec_idxs[0]);
+//     auto dst = VReg(out_vec_idxs[0]);
 
-    // берем последний вспомогательный вектор для сохранения x
-    auto aux_save = VReg(aux_vec_idxs.back());
+//     // берем последний вспомогательный вектор для сохранения x
+//     auto aux_save = VReg(aux_vec_idxs.back());
     
-    //сохраняем исходное значение x 
-    h->vmv_v_v(aux_save, src); // aux_save = src
+//     //сохраняем исходное значение x 
+//     h->vmv_v_v(aux_save, src); // aux_save = src
      
-    // вызываем эмиттер sigmoid, который кладет результат в dst
-    // передаем ему все вспомогательные регистры, кроме последнего 
-    std::vector<size_t> sigmoid_aux_vec_idxs(
-        aux_vec_idxs.begin(), 
-        aux_vec_idxs.begin() + sigmoid_emitter->aux_vecs_count()
-    );
-    //вызываем sigmoid 
-    sigmoid_emitter->emit_code({static_cast<size_t>(src.getIdx())},
-                                {static_cast<size_t>(dst.getIdx())},
-                                {sigmoid_aux_vec_idxs},
-                                aux_gpr_idxs,
-                                aux_fp_gpr_idxs); 
+//     // вызываем эмиттер sigmoid, который кладет результат в dst
+//     // передаем ему все вспомогательные регистры, кроме последнего 
+//     std::vector<size_t> sigmoid_aux_vec_idxs(
+//         aux_vec_idxs.begin(), 
+//         aux_vec_idxs.begin() + sigmoid_emitter->aux_vecs_count()
+//     );
+//     //вызываем sigmoid 
+//     sigmoid_emitter->emit_code({static_cast<size_t>(src.getIdx())},
+//                                 {static_cast<size_t>(dst.getIdx())},
+//                                 {sigmoid_aux_vec_idxs},
+//                                 aux_gpr_idxs,
+//                                 aux_fp_gpr_idxs); 
 
-    h->vfmul_vv(dst, dst, aux_save); // dst = x * sigmoid(x)
+//     h->vfmul_vv(dst, dst, aux_save); // dst = x * sigmoid(x)
 
-}
-std::set<std::vector<element::Type>> jit_swish_emitter::get_supported_precisions(
-    [[maybe_unused]] const std::shared_ptr<ov::Node>& node) {
-    return {{element::f32}};
-}
+// }
+// std::set<std::vector<element::Type>> jit_swish_emitter::get_supported_precisions(
+//     [[maybe_unused]] const std::shared_ptr<ov::Node>& node) {
+//     return {{element::f32}};
+// }
 
-void jit_swish_emitter::emit_data() const {
-    sigmoid_emitter->emit_data();
-    jit_emitter::emit_data();
-}
+// void jit_swish_emitter::emit_data() const {
+//     sigmoid_emitter->emit_data();
+//     jit_emitter::emit_data();
+// }
 // LESS ///
 jit_less_emitter::jit_less_emitter(jit_generator_t* host, cpu_isa_t host_isa, element::Type exec_prc)
     : jit_emitter(host, host_isa, exec_prc) {
