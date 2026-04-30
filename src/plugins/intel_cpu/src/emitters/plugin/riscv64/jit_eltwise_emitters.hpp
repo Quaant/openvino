@@ -496,6 +496,10 @@ private:
 class jit_swish_emitter : public jit_emitter { 
     public: 
     jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+                       float alpha,
+                       ov::intel_cpu::riscv64::cpu_isa_t host_isa,
+                       ov::element::Type exec_prc = ov::element::f32);
+    jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
                                        ov::element::Type exec_prc = ov::element::f32);
     jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
@@ -513,9 +517,12 @@ class jit_swish_emitter : public jit_emitter {
     size_t aux_fp_gprs_count() const override;
 
     void emit_data() const override;
+    void register_table_entries() override;
 
     private: 
         std::unique_ptr<jit_sigmoid_emitter> sigmoid_emitter{nullptr};
+        float alpha_ = 1.0f;
+
         void emit_impl(const std::vector<size_t> & in_vec_idxs, const std::vector<size_t>& out_vec_idxs) const override; 
         template<ov::intel_cpu::riscv64::cpu_isa_t isa> 
         void emit_isa(const std::vector<size_t>& in_vec_idxs, const std::vector<size_t>& out_vec_idxs) const; 

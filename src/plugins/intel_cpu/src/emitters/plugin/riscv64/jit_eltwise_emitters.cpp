@@ -1871,11 +1871,16 @@ void jit_hswish_emitter::emit_data() const {
 
 //SWISH 
 jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+                                       float alpha,
                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
                                        ov::element::Type exec_prc)
-    : jit_emitter(host, host_isa, exec_prc) {
+    : jit_emitter(host, host_isa, exec_prc), alpha_(alpha) {
     sigmoid_emitter = std::make_unique<jit_sigmoid_emitter>(host, host_isa, exec_prc);
 }
+jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
+                                       ov::intel_cpu::riscv64::cpu_isa_t host_isa,
+                                       ov::element::Type exec_prc)
+    : jit_swish_emitter(host, 1.0f, host_isa, exec_prc) {}
 jit_swish_emitter::jit_swish_emitter(ov::intel_cpu::riscv64::jit_generator_t* host,
                                        ov::intel_cpu::riscv64::cpu_isa_t host_isa,
                                        [[maybe_unused]] const std::shared_ptr<ov::Node>& node,
@@ -1917,13 +1922,18 @@ void jit_swish_emitter::emit_isa(const std::vector<size_t>& in_vec_idxs,
 
     auto src = VReg(in_vec_idxs[0]);
     auto dst = VReg(out_vec_idxs[0]);
-
+    
     // берем последний вспомогательный вектор для сохранения x
     auto aux_save = VReg(aux_vec_idxs.back());
     
     //сохраняем исходное значение x 
     h->vmv_v_v(aux_save, src); // aux_save = src
-     
+    
+    // загружаем alpha и умножаем src = alpha * x
+    auto alpha_reg = FReg(aux_fp_gpr_idxs[0]);
+    load_table_val("swish_alpha", alpha_reg);
+    h->vfmul_vf(src, src, alpha_reg);
+
     // вызываем эмиттер sigmoid, который кладет результат в dst
     // передаем ему все вспомогательные регистры, кроме последнего 
     std::vector<size_t> sigmoid_aux_vec_idxs(
@@ -1948,6 +1958,9 @@ std::set<std::vector<element::Type>> jit_swish_emitter::get_supported_precisions
 void jit_swish_emitter::emit_data() const {
     sigmoid_emitter->emit_data();
     jit_emitter::emit_data();
+}
+void jit_swish_emitter::register_table_entries() {
+    push_arg_entry_of("swish_alpha", dnnl::impl::float2int(alpha_));
 }
 // LESS ///
 jit_less_emitter::jit_less_emitter(jit_generator_t* host, cpu_isa_t host_isa, element::Type exec_prc)
